@@ -4,7 +4,7 @@ import re
 
 # --- 기본 설정 및 데이터 로딩 ---
 st.set_page_config(page_title="연세대학교 교육대학원 시간표 도우미", layout="wide")
-st.title("👨‍💻 연세대학교 교육대학원 2026학년도 1학기 시간표 도우미")
+st.title("👨‍💻 연세대학교 교육대학원 2025학년도 2학기 시간표 도우미")
 
 with st.expander("✨ 주요 기능 및 사용 안내 (클릭하여 확인)"):
     st.subheader("✨ 주요 기능")
