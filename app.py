@@ -57,27 +57,23 @@ def ensure_columns(df, required_cols):
 def load_and_process_data(file_path):
     """
     yonsei_timetable.csv 파일에서 데이터를 읽고 전처리합니다.
-    각 과목의 모든 시간 슬롯을 미리 집합(set)으로 계산하여 'time_slots_set' 컬럼에 저장합니다.
     """
     try:
-        # 한글 깨짐 방지를 위해 utf-8-sig 엔진 사용
         df = pd.read_csv(file_path, encoding='utf-8-sig')
     except Exception as e:
         st.error(f"CSV 파일을 읽는 중 오류 발생: {e}")
         return None
 
-    # 필요한 컬럼 정의
     required_cols = ['교과목명', '교수명', '학점', '이수구분', '영역구분', '학부(과)', '대상학년', '분반', '강의시간/강의실', '캠퍼스구분', '교과목코드', '수업방법', '비고', '원격강의구분', 'type']
     ensure_columns(df, required_cols)
     
-    # 만약 type 컬럼이 비어있다면 기본값으로 분기 처리 (기본 '전공' 세팅)
-    if (df['type'] == '').all():
+    # type 컬럼 세팅
+    if (df['type'] == '').all() or df['type'].isna().all():
         df['type'] = df['이수구분'].apply(lambda x: '교양' if '교양' in str(x) else '전공')
 
     df_combined = df[required_cols].copy().dropna(subset=['교과목코드', '분반'])
     df_combined[['대상학년', '영역구분', '비고', '원격강의구분', '수업방법', '학부(과)']] = df_combined[['대상학년', '영역구분', '비고', '원격강의구분', '수업방법', '학부(과)']].fillna('')
     
-    # 데이터 타입 안정화
     df_combined['교과목코드'] = df_combined['교과목코드'].astype(int)
     df_combined['분반'] = df_combined['분반'].astype(int)
     
@@ -108,7 +104,6 @@ def load_and_process_data(file_path):
     return df_combined
 
 def get_available_courses(df, selected_codes):
-    """선택된 과목 리스트를 기반으로 시간/과목이 겹치지 않는 수강 가능 목록을 필터링합니다."""
     if not selected_codes:
         return df
 
@@ -125,7 +120,6 @@ def get_available_courses(df, selected_codes):
     return available_df[is_available_time]
 
 def format_course_string(x, mode='selectbox'):
-    """과목 정보를 UI용 문자열로 포맷팅합니다."""
     method_campus_info = ""
     if pd.notna(x['수업방법']) and x['수업방법'].strip() != '':
         if ('대면' in x['수업방법'] or '혼합' in x['수업방법']) and pd.notna(x['캠퍼스구분']) and x['캠퍼스구분'].strip() != '':
@@ -161,7 +155,6 @@ def format_course_string(x, mode='selectbox'):
     return base_str
 
 def add_course_to_timetable(course_row):
-    """선택된 과목을 세션에 추가하고 새로고침합니다."""
     code, no = course_row['교과목코드'], course_row['분반']
     if (code, no) in st.session_state.my_courses:
         st.warning(f"'{course_row['교과목명']}' 과목은 이미 목록에 있습니다.")
@@ -177,7 +170,7 @@ def add_course_to_timetable(course_row):
     st.rerun()
 
 
-# --- 파일 로드 경로 수정 ---
+# --- 파일 로드 경로 ---
 csv_file_path = 'yonsei_timetable.csv'
 if not os.path.exists(csv_file_path):
     st.error(f"'{csv_file_path}' 파일을 찾을 수 없습니다. `app.py`와 같은 폴더에 CSV 파일을 배치해주세요.")
@@ -189,7 +182,6 @@ if master_df is not None:
     if 'my_courses' not in st.session_state: st.session_state.my_courses = []
     if 'color_map' not in st.session_state: st.session_state.color_map = {}
 
-    # URL 파라미터 복원 로직
     if "courses" in st.query_params and not st.session_state.my_courses:
         try:
             courses_str = st.query_params.get("courses")
@@ -269,7 +261,7 @@ if master_df is not None:
         search_query = st.text_input("🔎 **과목명 또는 교수명으로 검색**", placeholder="예: 교육학개론 또는 홍길동", key="major_search")
         if search_query:
             q = search_query.lower()
-            final_filtered_df = final_filtered_df[df['교과목명'].str.lower().str.contains(q, na=False) | df['교수명'].str.lower().str.contains(q, na=False)]
+            final_filtered_df = final_filtered_df[final_filtered_df['교과목명'].str.lower().str.contains(q, na=False) | final_filtered_df['교수명'].str.lower().str.contains(q, na=False)]
 
         st.write("---")
 
@@ -530,7 +522,7 @@ if master_df is not None:
         """, unsafe_allow_html=True)
 
         for index, (code, no) in enumerate(st.session_state.my_courses):
-            course = master_df Master_df[(master_df['교과목코드'] == code) & (master_df['분반'] == no)].iloc[0]
+            course = master_df[(master_df['교과목코드'] == code) & (master_df['분반'] == no)].iloc[0]
             col1, col2 = st.columns([0.9, 0.1])
             with col1:
                 display_str = format_course_string(course, mode='list') 
